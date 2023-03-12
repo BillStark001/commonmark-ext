@@ -1,9 +1,12 @@
-import { BlockStartsHandler, BlockHandler, common } from 'commonmark';
+import { Node, BlockStartsHandler, BlockHandler, common, InlineHandler, createTextnode } from 'commonmark';
 import { ExtendedNodeType } from './common';
 
 
 const reMathFence = /^\${2,}/;
 const reClosingMathFence = /^\${2,}(?=[ \t]*$)/;
+
+const reInlineMathFence = /\$+/g;
+const reInlineMathFenceHere = /^\$+/g;
 
 // const MATH_INDENT = 4;
 
@@ -89,4 +92,41 @@ export const MathHandler: BlockHandler<ExtendedNodeType> = {
     return false;
   },
   acceptsLines: true
+};
+
+// inline handler
+
+export const parseInlineMathFence: InlineHandler<ExtendedNodeType> = (parser, block) => {
+  const dollarSigns = parser.match(reInlineMathFenceHere);
+  if (dollarSigns === undefined) {
+    return false;
+  }
+
+  const starting = parser.pos;
+  let matched: string | undefined;
+  let contents: string;
+  while ((matched = parser.match(reInlineMathFence)) !== undefined) {
+    // The length should be exactly the same
+    if (matched === dollarSigns) {
+      const node = new Node('math_inline');
+      contents = parser.subject
+        .slice(starting, parser.pos - dollarSigns.length)
+        .replace(/\n/gm, ' ');
+      const cond = contents.length > 0 &&
+        contents.match(/[^ ]/) !== null &&
+        contents[0] === ' ' &&
+        contents[contents.length - 1] === ' ';
+      if (cond) {
+        node._literal = contents.slice(1, contents.length - 1);
+      } else {
+        node._literal = contents;
+      }
+      block.appendChild(node);
+      return true;
+    }
+  }
+  // If we got here, we didn't match a closing backtick sequence.
+  parser.pos = starting;
+  block.appendChild(createTextnode(dollarSigns));
+  return true;
 };

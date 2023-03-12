@@ -1,29 +1,11 @@
-import { Node, NodeTypeDefinition, generalIsContainer, BlockParsingOptions, compileMaybeSpecialRegExp, HtmlRenderingOptions, HtmlRenderer, BlockParser, generalIsCodeBlockCategory, generalNeedsInlineParse } from 'commonmark';
-import { ExtendedNodeType } from './parse/common';
-import { MathHandler, MathTrigger } from './parse/math';
+import { Node, BlockParsingOptions, compileMaybeSpecialRegExp, HtmlRenderingOptions, HtmlRenderer, BlockParser, compileNonSpecialCharRegExp } from 'commonmark';
+import { ExtendedNodeDefinition, ExtendedNodeType } from './parse/common';
+import { MathHandler, MathTrigger, parseInlineMathFence } from './parse/math';
 import { TableTrigger, TableHandler, TableHeadHandler, TableRowHandler, TableCellHandler, TableCellContent } from './parse/table';
 
 
 
-export const ExtendedNodeDefinition: NodeTypeDefinition<ExtendedNodeType> = {
-  isContainer: (n) => {
-    if (
-      n.type === 'table' || 
-      n.type === 'table_row' ||
-      n.type === 'table_head' || 
-      n.type === 'table_cell' || 
-      n.type === 'math_block'
-    )
-      return true;
-    return generalIsContainer(n);
-  },
-  isCodeBlockCategory: function (t: ExtendedNodeType): boolean {
-    return generalIsCodeBlockCategory(t) || t === 'math_block';
-  },
-  needsInlineParse: function (t: ExtendedNodeType): boolean {
-    return generalNeedsInlineParse(t) || t === 'table_cell';
-  }
-};
+
 
 
 const options: BlockParsingOptions<ExtendedNodeType> = {
@@ -40,7 +22,11 @@ const options: BlockParsingOptions<ExtendedNodeType> = {
     [-1]: [TableTrigger],
     [2]: [MathTrigger],
   },
-  reMaybeSpecial: compileMaybeSpecialRegExp('$', '|'),
+  reMaybeSpecial: compileMaybeSpecialRegExp('$', '|', true),
+  reNonSpecialChars: compileNonSpecialCharRegExp('$', true),
+  inlineHandlers: [
+    ['$', parseInlineMathFence]
+  ]
 };
 
 const renderingOptions: HtmlRenderingOptions<ExtendedNodeType> = {
@@ -50,12 +36,16 @@ const renderingOptions: HtmlRenderingOptions<ExtendedNodeType> = {
 
 class ExtendedRenderer extends HtmlRenderer<ExtendedNodeType> {
 
-  math_block(node: Node<ExtendedNodeType>, entering: boolean) {
-    if (entering) {
-      this.lit('<pre><math>');
-      this.lit(node._literal ?? '');
-      this.lit('</math></pre>');
-    }
+  math_block(node: Node<ExtendedNodeType>) {
+    this.lit('<pre><math>');
+    this.lit(node._literal ?? '');
+    this.lit('</math></pre>');
+  }
+
+  math_inline(node: Node<ExtendedNodeType>) {
+    this.lit('<math>');
+    this.lit(node._literal ?? '');
+    this.lit('</math>');
   }
 
   table_cell(node: Node<ExtendedNodeType>, entering: boolean) {
@@ -65,54 +55,37 @@ class ExtendedRenderer extends HtmlRenderer<ExtendedNodeType> {
       `<${tag}${align ? ' align=' + JSON.stringify(align) : ''}>` : 
       `</${tag}>`;
     this.lit(content);
-    if (!entering)
+    if (!entering){
       this.cr();
+    }
   }
 
   table(node: Node<ExtendedNodeType>, entering: boolean) {
-    this.lit(entering ? '<table>' : '</table>');
-    if (entering)
-      this.cr();
+    this.lit(entering ? '<table>\n' : '</tbody>\n</table>');
   }
 
   table_head(node: Node<ExtendedNodeType>, entering: boolean) {
-    this.lit(entering ? '<tr>' : '</tr>');
+    this.lit(entering ? '<thead>\n<tr>' : '</tr>\n</thead>\n<tbody>');
     this.cr();
   }
   table_row(node: Node<ExtendedNodeType>, entering: boolean) {
-    this.lit(entering ? '<tr>' : '</tr>');
+    this.tag(entering ? 'tr' : '/tr');
     this.cr();
   }
 
 }
 
 const testMarkdown = `
-aaaa
+| abc | def |
+| --- | --- |
+| bar | baz |
+> bar
 
--|
-
-| 1|2|3\\||4|
-   -|-:|:-| :-:
-  5|6|3333\`\`\`7\`\`\`4444
-  8 | 999
---------
-> 2
-> 3
-| abc | defghi |
-:-: | -----------:
-bar | baz
-
-gan si $huang-xu-dong$ 
-bai qiu \`dai chong feng\`
-
-$$$$$$
-gan si huang xu dong
-$$$$$$
-~~~~~~
-gan si huang xu dong
-~~~~~~
-
-dddd
+$$$$$
+aaa
+bbb
+~~~~~~~
+$$$$$
 `;
 
 const parser = new BlockParser(options);
