@@ -1,11 +1,11 @@
-import { BlockStartsHandler, BlockHandler, common } from "commonmark";
-import { ExtendedNodeType } from "./common";
+import { BlockStartsHandler, BlockHandler, common } from 'commonmark';
+import { ExtendedNodeType } from './common';
 
 
 const reMathFence = /^\${2,}/;
 const reClosingMathFence = /^\${2,}(?=[ \t]*$)/;
 
-const MATH_INDENT = 4;
+// const MATH_INDENT = 4;
 
 
 export const MathTrigger: BlockStartsHandler<ExtendedNodeType> = (parser) => {
@@ -27,7 +27,7 @@ export const MathTrigger: BlockStartsHandler<ExtendedNodeType> = (parser) => {
     return 2;
   }
   return 0;
-}
+};
 
 const isSpaceOrTab = (c: number) => {
   return c === 0x09 || c === 0x20;
@@ -89,4 +89,4 @@ export const MathHandler: BlockHandler<ExtendedNodeType> = {
     return false;
   },
   acceptsLines: true
-}
+};

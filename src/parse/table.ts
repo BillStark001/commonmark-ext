@@ -1,4 +1,4 @@
-import { Node, BlockHandler, BlockParser, StartingConditions, common, BlockStartsHandler } from 'commonmark';
+import { BlockHandler, StartingConditions, common, BlockStartsHandler } from 'commonmark';
 import { ExtendedNodeType } from './common';
 
 export type TableAlignFormat = 'left' | 'center' | 'right';
@@ -6,10 +6,17 @@ export type TableAlignFormat = 'left' | 'center' | 'right';
 // const C_VERTICAL_BAR = 124;
 
 export type TableContent = {
-  header: string[],
   format: (TableAlignFormat | undefined)[],
-  body: string[][],
 };
+
+export type TableReference = {
+  content: TableContent,
+};
+
+export type TableCellContent = {
+  isHeader?: boolean;
+  align?: TableAlignFormat;
+}
 
 const reTableSep = /^[ \t]*\|?[ \t]*(:?-+:?[ \t]*\|[ \t]*?)+[ \t]*(?::?-+:?)?[ \t]*$/;
 const reLeadingSpace = /^[ \t]*/;
@@ -47,12 +54,12 @@ export const splitRow = (s: string, bars?: number[], seps?: [number, boolean, bo
   bars = bars ?? matchVerticalBars(s);
   const [cnt, leadingChar, trailingChar] = seps ?? countColumns(s, bars);
   let cursor = leadingChar ? 0 : bars[0] + 1;
-  const ans: string[] = [];
+  const ans: [string, number, number][] = [];
   for (let i = 0; i < cnt; ++i) {
     const rightCursor = i == cnt - 1 ? 
       (trailingChar ? s.length : bars[bars.length - 1]) : 
       bars[i + 1 + - Number(leadingChar)];
-    ans.push(s.slice(cursor, rightCursor).trim());
+    ans.push([s.slice(cursor, rightCursor).trim(), cursor, rightCursor]);
     cursor = rightCursor + 1;
   }
   return ans;
@@ -75,7 +82,7 @@ export const parseAlignFormat = (s: string): TableAlignFormat | undefined => {
 
 
 export const TableHandler: BlockHandler<ExtendedNodeType> = {
-  continue: function (parser: BlockParser<ExtendedNodeType>, block: Node<ExtendedNodeType>): 0 | 2 | 1 {
+  continue: (parser, block) => {
     if (block.sourcepos[0][0] == parser.lineNumber - 1) { // table sep
       parser.advanceOffset(parser.currentLine.length); // do nothing
       return 0;
@@ -84,19 +91,61 @@ export const TableHandler: BlockHandler<ExtendedNodeType> = {
       !reVerticalBar.test(parser.currentLine) ||
       StartingConditions.isTopLevelStarting(parser, block);
     if (!haltCondition) { // table row
-      parser.advanceOffset(parser.currentLine.length);
-      (block.customData as TableContent).body.push(splitRow(parser.currentLine).map(x => common.unescapeString(x)));
+      const row = parser.addChild('table_row', parser.offset);
+      row.customData = { content: block.customData } as TableReference;
+      TableRowHandler.continue(parser, row);
+      // parser.advanceOffset(parser.currentLine.length);
+      // (block.customData as TableContent).body.push(splitRow(parser.currentLine).map(x => common.unescapeString(x[0])));
       return 0;
     }
     return 1;
   },
-  finalize: function (): void {
+  finalize: () => {
     return;
   },
   canContain: function (t: ExtendedNodeType): boolean {
     return t === 'table_row' || t === 'table_head';
   },
   acceptsLines: true
+};
+
+export const TableRowHandler: BlockHandler<ExtendedNodeType> = {
+  continue: (parser, block) => {
+    const aligns = (block.customData as TableReference).content.format;
+    const isHeader = block.type === 'table_head';
+    const currentRowData = splitRow(parser.currentLine)
+      .slice(0, aligns.length)
+      .map(x => [common.unescapeString(x[0]), x[1], x[2]] as [string, number, number]);
+    for (let i = 0; i < currentRowData.length; ++i) {
+      const [text, pos] = currentRowData[i];
+      const cell = parser.addChild('table_cell', pos);
+      cell._string_content = text;
+      cell.customData = {
+        isHeader: isHeader, 
+        align: aligns[i]
+      } as TableCellContent;
+      parser.finalize(cell, parser.lineNumber);
+    }
+    parser.advanceOffset(parser.currentLine.length - parser.offset);
+    parser.finalize(block, parser.offset);
+    return 0;
+  },
+  finalize: () => {
+    return;
+  },
+  canContain: (t) => t === 'table_cell',
+  acceptsLines: false,
+};
+
+export const TableHeadHandler = TableRowHandler;
+
+export const TableCellHandler: BlockHandler<ExtendedNodeType> = {
+  continue: () => 0,
+  finalize: () => {
+    return;
+  },
+  canContain: () => false,
+  acceptsLines: false, 
 };
 
 
@@ -112,11 +161,12 @@ export const TableTrigger: BlockStartsHandler<ExtendedNodeType> = (parser) => {
       // parser.advanceOffset(parser.currentLine.trim().length, false);
       const table = parser.addChild('table', parser.offset);
       table.customData = {
-        header: splitRow(parser.currentLine, currentBars, currentColumns).map(x => common.unescapeString(x)),
-        format: splitRow(parser.nextLine, nextBars, nextColumns).map(x => parseAlignFormat(x)),
-        body: []
+        format: splitRow(parser.nextLine, nextBars, nextColumns).map(x => parseAlignFormat(x[0])),
       } as TableContent;
-      parser.advanceOffset(parser.currentLine.length);
+      const tableHead = parser.addChild('table_head', parser.offset);
+      tableHead.customData = { content: table.customData } as TableReference;
+      TableHeadHandler.continue(parser, tableHead);
+      // parser.advanceOffset(parser.currentLine.length);
       return 1;
     }
   }
