@@ -97,11 +97,12 @@ export const MathHandler: BlockHandler<ExtendedNodeType> = {
 // inline handler
 
 export const parseInlineMathFence: InlineHandler<ExtendedNodeType> = (parser, block) => {
+  reInlineMathFenceHere.lastIndex = 0;
+  reInlineMathFence.lastIndex = 0;
   const dollarSigns = parser.match(reInlineMathFenceHere);
   if (dollarSigns === undefined) {
     return false;
   }
-
   const starting = parser.pos;
   let matched: string | undefined;
   let contents: string;
