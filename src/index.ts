@@ -7,7 +7,13 @@ import { TableTrigger, TableHandler, TableHeadHandler, TableRowHandler, TableCel
 
 export const ExtendedNodeDefinition: NodeTypeDefinition<ExtendedNodeType> = {
   isContainer: (n) => {
-    if (n.type === 'table' || n.type === 'table_row' || n.type === 'table_head' || n.type === 'math_block')
+    if (
+      n.type === 'table' || 
+      n.type === 'table_row' ||
+      n.type === 'table_head' || 
+      n.type === 'table_cell' || 
+      n.type === 'math_block'
+    )
       return true;
     return generalIsContainer(n);
   },
@@ -15,7 +21,7 @@ export const ExtendedNodeDefinition: NodeTypeDefinition<ExtendedNodeType> = {
     return generalIsCodeBlockCategory(t) || t === 'math_block';
   },
   needsInlineParse: function (t: ExtendedNodeType): boolean {
-    return generalNeedsInlineParse(t) || t === 'table';
+    return generalNeedsInlineParse(t) || t === 'table_cell';
   }
 };
 
@@ -55,9 +61,12 @@ class ExtendedRenderer extends HtmlRenderer<ExtendedNodeType> {
   table_cell(node: Node<ExtendedNodeType>, entering: boolean) {
     const { align, isHeader } = node.customData as TableCellContent;
     const tag = isHeader ? 'th' : 'td';
-    const content =  `<${tag}${align ? ' align=' + JSON.stringify(align) : ''}>${node._string_content}</${tag}>`;
+    const content =  entering ? 
+      `<${tag}${align ? ' align=' + JSON.stringify(align) : ''}>` : 
+      `</${tag}>`;
     this.lit(content);
-    this.cr();
+    if (!entering)
+      this.cr();
   }
 
   table(node: Node<ExtendedNodeType>, entering: boolean) {
@@ -84,7 +93,7 @@ aaaa
 
 | 1|2|3\\||4|
    -|-:|:-| :-:
-  5|6|7
+  5|6|3333\`\`\`7\`\`\`4444
   8 | 999
 --------
 > 2
