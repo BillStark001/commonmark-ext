@@ -1,10 +1,9 @@
-import { Node, BlockParsingOptions, compileMaybeSpecialRegExp, HtmlRenderingOptions, HtmlRenderer, BlockParser, compileNonSpecialCharRegExp } from 'commonmark';
+import { Node, BlockParsingOptions, compileMaybeSpecialRegExp, HtmlRenderingOptions, HtmlRenderer, BlockParser, NodeWalker, NodeWalkerEvent } from 'commonmark';
 import { ExtendedNodeDefinition, ExtendedNodeType } from './parse/common';
+import { HtmlParagraphDefinition, isHtmlRecordNode, mergeHtmlNodes } from './parse/html';
 import { MathHandler, MathTrigger, parseInlineMathFence } from './parse/math';
 import { TableTrigger, TableHandler, TableHeadHandler, TableRowHandler, TableCellHandler, TableCellContent } from './parse/table';
-
-
-
+import { parseInlineTemplate, TemplateParams } from './parse/template';
 
 
 
@@ -23,9 +22,10 @@ const options: BlockParsingOptions<ExtendedNodeType> = {
     [2]: [MathTrigger],
   },
   reMaybeSpecial: compileMaybeSpecialRegExp('$', '|', true),
-  reNonSpecialChars: compileNonSpecialCharRegExp('$', true),
+  // reNonSpecialChars: compileNonSpecialCharRegExp('$', true),
   inlineHandlers: [
-    ['$', parseInlineMathFence]
+    ['$', parseInlineMathFence], 
+    ['@', parseInlineTemplate],
   ]
 };
 
@@ -73,26 +73,54 @@ class ExtendedRenderer extends HtmlRenderer<ExtendedNodeType> {
     this.cr();
   }
 
+  html_paragraph(node: Node<ExtendedNodeType>, entering: boolean) {
+    const { startTag, endTag, tagName } = node.customData as HtmlParagraphDefinition;
+    if (entering)
+      this.lit(startTag ?? (tagName && `<${tagName}>`) ?? '');
+    else 
+      this.lit(endTag ?? (tagName && `</${tagName}>`) ?? '');
+  }
+
+  html_paragraph_text(node: Node<ExtendedNodeType>) {
+    this.text(node);
+  }
+
+  template(node: Node<ExtendedNodeType>) {
+    const { name, args, kwargs } = node.customData as TemplateParams;
+    this.lit(`Template [${name}]: \n`);
+    this.lit(`Arguments: ${JSON.stringify(args)} \n`);
+    this.lit(`Keyword Arguments: ${JSON.stringify(kwargs)}`);
+  }
+
 }
 
 const testMarkdown = `
-| abc | def |
-| --- | --- |
-| bar | baz |
-> bar
+<div>
+<p>
+test1
+</dddd>
+</p>
+</div>
 
-$$$$$
-aaa
-bbb
-~~~~~~~
-$$$$$
+@[aaa](333, ddf, sada, 'sss', bbb = ccc, ddd = 'eee', 'fff' = 666.4e+12, hhh = undefined, kkk = false)
 `;
 
 const parser = new BlockParser(options);
 const renderer = new ExtendedRenderer(renderingOptions);
 
 const ast = parser.parse(testMarkdown);
-
-
-// console.log(ast);
+const walker = new NodeWalker(ast, options.type);
+let current: NodeWalkerEvent<ExtendedNodeType> | undefined = undefined;
+while ((current = walker.next()) !== undefined) {
+  if (isHtmlRecordNode(current.node)) {
+    const reducedNode = mergeHtmlNodes(current.node, 'html_paragraph', 'html_paragraph_text');
+    walker.resumeAt(reducedNode, true);
+  }
+}
+/*
+walker.resumeAt(ast, true);
+while ((current = walker.next()) !== undefined) {
+  console.log(current.node.type, current.entering);
+}
+*/
 console.log(renderer.render(ast));

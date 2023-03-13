@@ -2,7 +2,10 @@ import { generalIsCodeBlockCategory, generalIsContainer, generalNeedsInlineParse
 
 export type ExtendedNodeType = GeneralNodeType 
   | 'table' | 'table_row' | 'table_head' | 'table_cell' 
-  | 'math_block' | 'math_inline';
+  | 'html_paragraph' | 'html_paragraph_text' 
+  | 'math_block' | 'math_inline'
+  | 'template'
+  ;
 
 export const ExtendedNodeDefinition: NodeTypeDefinition<ExtendedNodeType> = {
   isContainer: (n) => {
@@ -10,7 +13,8 @@ export const ExtendedNodeDefinition: NodeTypeDefinition<ExtendedNodeType> = {
       n.type === 'table' || 
       n.type === 'table_row' ||
       n.type === 'table_head' || 
-      n.type === 'table_cell' 
+      n.type === 'table_cell'  || 
+      n.type === 'html_paragraph'
     )
       return true;
     return generalIsContainer(n);
