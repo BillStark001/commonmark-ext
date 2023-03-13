@@ -3,13 +3,14 @@ import { Node, NodeType, common } from 'commonmark';
 export const isHtmlRecordNode = <T extends NodeType>(n?: Node<T>) => {
   if (n === undefined)
     return false;
-  reHtmlTag.lastIndex = 0;
+  reHtmlTag2.lastIndex = 0;
   if (n.type === 'html_block' || n.type === 'html_inline')
-    return reHtmlTag.test(n.literal ?? '');
+    return reHtmlTag2.test(n.literal ?? '');
   return false;
 };
 
 const reHtmlTag = new RegExp('(?:' + common.HTML_OPEN_TAG + '|' + common.HTML_CLOSE_TAG + ')', 'g');
+const reHtmlTag2 = new RegExp(reHtmlTag);
 const reTagContent = /^<(\/?)([A-Za-z][A-Za-z0-9-]*)/;
 
 export type HtmlParagraphDefinition = {
