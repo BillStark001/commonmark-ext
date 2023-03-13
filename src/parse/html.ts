@@ -21,11 +21,13 @@ export type HtmlParagraphDefinition = {
 
 export type TemporaryHtmlRecord<T extends NodeType> = HtmlParagraphDefinition & {
   tagName: string;
+  position: Node<T>['sourcepos']
   sub: ({
     type: 'node';
     value: Node<T>;
   } | {
     type: 'text';
+    position: Node<T>['sourcepos']
     value: string;
   } | {
     type: 'html';
@@ -34,15 +36,16 @@ export type TemporaryHtmlRecord<T extends NodeType> = HtmlParagraphDefinition & 
 };
 
 export const rationalizeParagraphRecord = <T extends NodeType>(record: TemporaryHtmlRecord<T>, htmlParagraphType: T, htmlParagraphTextType: T): Node<T> => {
-  const retNode = new Node<T>(htmlParagraphType);
-  for (const { type, value } of record.sub) {
+  const retNode = new Node<T>(htmlParagraphType, record.position);
+  for (const _sub of record.sub) {
+    const { type, value } = _sub;
     if (type === 'html') {
       retNode.appendChild(rationalizeParagraphRecord(value, htmlParagraphType, htmlParagraphTextType));
     } else if (type === 'node') {
       value.unlink();
       retNode.appendChild(value);
     } else {
-      const node = new Node(htmlParagraphTextType);
+      const node = new Node(htmlParagraphTextType, _sub.position);
       node.literal = value;
       retNode.appendChild(node);
     }
@@ -68,6 +71,7 @@ export const mergeHtmlNodes = <T extends NodeType>(startNode: Node<T>, htmlParag
   reHtmlTag.lastIndex = 0;
   let lastMatchIndex = 0;
   const rootRecord: TemporaryHtmlRecord<T> = {
+    position: [[-1, -1], [-1, -1]],
     tagName: '',
     sub: [],
   };
@@ -83,7 +87,7 @@ export const mergeHtmlNodes = <T extends NodeType>(startNode: Node<T>, htmlParag
         // only push spare item
         const item = currentNode.literal?.slice(lastMatchIndex);
         if (item !== undefined && item !== '')
-          currentRecord.sub.push({ type: 'text', value: item });
+          currentRecord.sub.push({ type: 'text', position: currentNode.sourcepos, value: item });
 
         // proceed to the next node
         reHtmlTag.lastIndex = 0;
@@ -96,22 +100,25 @@ export const mergeHtmlNodes = <T extends NodeType>(startNode: Node<T>, htmlParag
         // push spare item
         const item = currentNode.literal?.slice(lastMatchIndex, match.index);
         if (item !== undefined && item !== '')
-          currentRecord.sub.push({ type: 'text', value: item });
+          currentRecord.sub.push({ type: 'text', position: currentNode.sourcepos, value: item });
 
         // handle html tag
         const tag = match[0];
         const [, slash, name] = reTagContent.exec(tag) ?? [];
         const isCloseTag = slash === '/';
+        const isVoidTag = name === 'br' || name === 'img' || name === 'input';
 
         if (!isCloseTag) { 
           // we have another layer of html tag
           const newRecord: TemporaryHtmlRecord<T> = {
+            position: currentNode.sourcepos,
             tagName: name ?? '', 
             sub: [], 
             startTag: tag,
           };
           currentRecord.sub.push({ type: 'html', value: newRecord });
-          stack.push(newRecord);
+          if (!isVoidTag)
+            stack.push(newRecord);
         } else {
           // end the current layer
           let currentRecord2: TemporaryHtmlRecord<T> | undefined = currentRecord;
@@ -127,7 +134,7 @@ export const mergeHtmlNodes = <T extends NodeType>(startNode: Node<T>, htmlParag
             currentRecord2 = stack[stack.length - 1];
           }
           if (!recordAdded) {
-            currentRecord.sub.push({ type: 'text', value: tag });
+            currentRecord.sub.push({ type: 'text', position: currentNode.sourcepos, value: tag });
             stackBackup.forEach(x => stack.push(x));
           }
         }

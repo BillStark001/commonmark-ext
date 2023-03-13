@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-escape */
 import { Node, InlineHandler, InlineParser } from 'commonmark';
 import { ExtendedNodeType } from './common';
 
@@ -30,6 +31,13 @@ const reTemplateHierarchy: TemplateTokenType[] = [
   'num', 'str2', 'str1', 'key', 'end', 'name', 'assign', 'sep', 'space'
 ];
 
+const reTemplateReplacement = new RegExp(
+  '\\{{3}\\s*(' + 
+  NAME_RAW + 
+  ')\\s*(?:\\s*\\?\\?\\s*([^\\s\\}]*))?\\s*\\}{3}', 
+  'g'
+);
+
 const parseStringLiteral = (str: string, singleQuote?: boolean): string => {
   if (singleQuote) {
     str = str.replace(/(?<!\\)(?:\\\\)*(")/g, '\\"');
@@ -56,6 +64,33 @@ const tryMatchCurrentContext = (parser: InlineParser<ExtendedNodeType>): [Templa
       return [key, matched];
   }
   return undefined;
+};
+
+const tryMatchCurrentContext2 = (context: string): [TemplateTokenType, string] | undefined => {
+  let matched: RegExpExecArray | null;
+  for (const key of reTemplateHierarchy) {
+    matched = reTemplateSyntax[key].exec(context);
+    if (matched)
+      return [key, matched[0]];
+  }
+  return undefined;
+};
+
+const tryParseCurrentContext = (type: TemplateTokenType, raw: string): TemplateParamsType => {
+  let lastValue: TemplateParamsType = undefined;
+  if (type === 'num') {
+    lastValue = Number(raw);
+  }
+  else if (type === 'str1' || type === 'str2') {
+    lastValue = parseStringLiteral(raw, type === 'str1');
+  }
+  else if (type === 'key') {
+    lastValue = raw === 'undefined' ? undefined : JSON.parse(raw);
+  }
+  else if (type === 'name') {
+    lastValue = raw;
+  }
+  return lastValue;
 };
 
 export const parseInlineTemplate: InlineHandler<ExtendedNodeType> = (parser, block) => {
@@ -98,8 +133,9 @@ export const parseInlineTemplate: InlineHandler<ExtendedNodeType> = (parser, blo
       else if (key === 'sep') {
         pushNameAndValue();
       }
-      else if (key === 'space') {
-      }
+      // do nothing
+      // else if (key === 'space') {
+      // }
       else if (key === 'assign') {
         if (typeof lastValue === 'string') {
           lastName = lastValue;
@@ -109,17 +145,8 @@ export const parseInlineTemplate: InlineHandler<ExtendedNodeType> = (parser, blo
         lastValue = undefined;
       }
       // value
-      else if (key === 'num') {
-        lastValue = Number(value);
-      }
-      else if (key === 'str1' || key === 'str2') {
-        lastValue = parseStringLiteral(value, key === 'str1');
-      }
-      else if (key === 'key') {
-        lastValue = value === 'undefined' ? undefined : JSON.parse(value);
-      }
-      else if (key === 'name') {
-        lastValue = value;
+      else {
+        lastValue = tryParseCurrentContext(key, value);
       }
     }
   }
@@ -133,4 +160,33 @@ export const parseInlineTemplate: InlineHandler<ExtendedNodeType> = (parser, blo
   node.customData = templateParams;
   block.appendChild(node);
   return true;
+};
+
+export const compileTemplate = (
+  template: string,
+  args?: TemplateParamsType[], 
+  kwargs?: Record<string, TemplateParamsType>
+) => {
+  reTemplateReplacement.lastIndex = 0;
+  let ans = '';
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = reTemplateReplacement.exec(template))) {
+    // console.log(match[0]);
+    const [total, key, def] = match;
+    const index = key[0] === '$' ? Number(key.substring(1)) : NaN;
+
+    const [a, b] = tryMatchCurrentContext2(def ?? '') ?? ['end', ''];
+    const defVal = tryParseCurrentContext(a, b);
+    
+    const val = kwargs?.[key] ?? (!isNaN(index) ? args?.[index] : undefined);
+
+    ans += template.substring(lastIndex, match.index);
+    ans += String(val ?? defVal);
+    lastIndex = match.index + total.length;
+  }
+
+  ans += template.substring(lastIndex);
+  return ans;
+
 };

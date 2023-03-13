@@ -95,8 +95,7 @@ class ExtendedRenderer extends HtmlRenderer<ExtendedNodeType> {
 }
 
 const testMarkdown = `
-### <div><span style="font-size: 150%; color: black;">【GUILDAとは？】</span></div>
-
+<img src="../../Figures/index-3.jpg" width=100%;>
 @[aaa](333, ddf, sada, 'sss', bbb = ccc, ddd = 'eee', 'fff' = 666.4e+12, hhh = undefined, kkk = false)
 `;
 
@@ -109,7 +108,7 @@ let current: NodeWalkerEvent<ExtendedNodeType> | undefined = undefined;
 
 walker.resumeAt(ast, true);
 while ((current = walker.next()) !== undefined) {
-  console.log(current.node.type, current.entering, current.node.literal);
+  console.log(current.node.type, current.entering, current.node.literal, current.node.sourcepos);
 }
 
 walker.resumeAt(ast, true);
@@ -123,7 +122,7 @@ while ((current = walker.next()) !== undefined) {
 console.log();
 walker.resumeAt(ast, true);
 while ((current = walker.next()) !== undefined) {
-  console.log(current.node.type, current.entering, current.node.literal);
+  console.log(current.node.type, current.entering, current.node.literal, current.node.sourcepos);
 }
 
 console.log(renderer.render(ast));
