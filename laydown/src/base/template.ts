@@ -133,9 +133,10 @@ export const parseInlineTemplate: InlineHandler<ExtendedNodeType> = (parser, blo
       else if (key === 'sep') {
         pushNameAndValue();
       }
-      // do nothing
-      // else if (key === 'space') {
-      // }
+      else if (key === 'space') {
+        if (lastName !== undefined)
+          pushNameAndValue();
+      }
       else if (key === 'assign') {
         if (typeof lastValue === 'string') {
           lastName = lastValue;
@@ -175,14 +176,12 @@ export const compileTemplate = (
     // console.log(match[0]);
     const [total, key, def] = match;
     const index = key[0] === '$' ? Number(key.substring(1)) : NaN;
-
     const [a, b] = tryMatchCurrentContext2(def ?? '') ?? ['end', ''];
     const defVal = tryParseCurrentContext(a, b);
     
     const val = kwargs?.[key] ?? (!isNaN(index) ? args?.[index] : undefined);
-
     ans += template.substring(lastIndex, match.index);
-    ans += String(val ?? defVal);
+    ans += String(val ?? defVal ?? '');
     lastIndex = match.index + total.length;
   }
 

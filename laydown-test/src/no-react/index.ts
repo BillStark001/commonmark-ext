@@ -1,33 +1,7 @@
-import { Node, BlockParsingOptions, compileMaybeSpecialRegExp, HtmlRenderingOptions, HtmlRenderer, BlockParser, NodeWalker, NodeWalkerEvent } from 'commonmark';
-import { ExtendedNodeDefinition, ExtendedNodeType } from './parse/common';
-import { HtmlParagraphDefinition, isHtmlRecordNode, mergeHtmlNodes } from './parse/html';
-import { MathHandler, MathTrigger, parseInlineMathFence } from './parse/math';
-import { TableTrigger, TableHandler, TableHeadHandler, TableRowHandler, TableCellHandler, TableCellContent } from './parse/table';
-import { parseInlineTemplate, TemplateParams } from './parse/template';
+import { Node, HtmlRenderingOptions, HtmlRenderer, BlockParser, NodeWalker, NodeWalkerEvent } from 'commonmark';
+import { ExtendedNodeDefinition, ExtendedSyntaxOptions, ExtendedNodeType } from 'laydown';
+import { HtmlParagraphDefinition, isHtmlRecordNode, mergeHtmlNodes, TemplateParams, TableCellContent } from 'laydown';
 
-
-
-const options: BlockParsingOptions<ExtendedNodeType> = {
-  type: ExtendedNodeDefinition,
-  blockHandlers: {
-    table: TableHandler,
-    table_head: TableHeadHandler,
-    table_row: TableRowHandler,
-    table_cell: TableCellHandler,
-
-    math_block: MathHandler,
-  },
-  blockStartHandlers: {
-    [-1]: [TableTrigger],
-    [2]: [MathTrigger],
-  },
-  reMaybeSpecial: compileMaybeSpecialRegExp('$', '|', true),
-  // reNonSpecialChars: compileNonSpecialCharRegExp('$', true),
-  inlineHandlers: [
-    ['$', parseInlineMathFence], 
-    ['@', parseInlineTemplate],
-  ]
-};
 
 const renderingOptions: HtmlRenderingOptions<ExtendedNodeType> = {
   type: ExtendedNodeDefinition,
@@ -99,11 +73,11 @@ const testMarkdown = `
 @[aaa](333, ddf, sada, 'sss', bbb = ccc, ddd = 'eee', 'fff' = 666.4e+12, hhh = undefined, kkk = false)
 `;
 
-const parser = new BlockParser(options);
+const parser = new BlockParser(ExtendedSyntaxOptions);
 const renderer = new ExtendedRenderer(renderingOptions);
 
 const ast = parser.parse(testMarkdown);
-const walker = new NodeWalker(ast, options.type);
+const walker = new NodeWalker(ast, ExtendedSyntaxOptions.type);
 let current: NodeWalkerEvent<ExtendedNodeType> | undefined = undefined;
 
 walker.resumeAt(ast, true);

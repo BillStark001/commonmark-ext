@@ -1,0 +1,25 @@
+.title-anchor {
+  position: relative;
+}
+
+.title-anchor>* {
+  position: absolute;
+  left: 0;
+  width: 0;
+  top: 0;
+}
+
+.title-anchor a {
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.dark-mode .title-anchor img {
+  filter: invert(1);
+}
+
+.title-id {
+  position: absolute;
+  top: -100px;
+}

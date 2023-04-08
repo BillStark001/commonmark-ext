@@ -1,9 +1,11 @@
 import { generalIsCodeBlockCategory, generalIsContainer, generalNeedsInlineParse, GeneralNodeType, NodeTypeDefinition } from 'commonmark';
 
+
 export type ExtendedNodeType = GeneralNodeType 
   | 'table' | 'table_row' | 'table_head' | 'table_cell' 
   | 'html_paragraph' | 'html_paragraph_text' 
   | 'math_block' | 'math_inline'
+  | 'emoji'
   | 'template'
   ;
 
@@ -26,3 +28,4 @@ export const ExtendedNodeDefinition: NodeTypeDefinition<ExtendedNodeType> = {
     return generalNeedsInlineParse(t) || t === 'table_cell';
   }
 };
+

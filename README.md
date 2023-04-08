@@ -1,4 +1,4 @@
-# commonmark-ext
+# LayDown
 
 Extensions for CommonMark including:
   - Tables

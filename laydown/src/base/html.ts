@@ -1,4 +1,5 @@
 import { Node, NodeType, common } from 'commonmark';
+import md5 from 'js-md5';
 
 export const isHtmlRecordNode = <T extends NodeType>(n?: Node<T>) => {
   if (n === undefined)
@@ -164,4 +165,16 @@ export const mergeHtmlNodes = <T extends NodeType>(startNode: Node<T>, htmlParag
     markerNode.insertAfter(htmlParagraph);
 
   return htmlParagraph;
+};
+
+export const generateAnchorFromTitle = (title: string) => {
+  const anchorText = title
+    
+    .replace(// eslint-disable-next-line no-control-regex
+      /[%/\\,.#?;:$+@&={}[\]()<>\x00-\x1f\x7f-\xff]/g, ''
+      /*(str) => str.charCodeAt(0).toString(16)*/)
+    .replace(/[\s_]+/g, '_')
+    .replace(/[\x80-\uffff]+/g, (str) => md5(str).slice(8, 12))
+    ;
+  return anchorText;
 };
