@@ -10,6 +10,7 @@
     "test:native": "npx ts-node ./src/no-react/index"
   },
   "dependencies": {
+    "commonmark": "file:../../commonmark",
     "laydown": "file:../laydown",
     "laydown-react": "file:../laydown-react",
     "react": "^18.2.0",

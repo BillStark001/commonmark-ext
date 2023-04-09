@@ -1,7 +1,5 @@
 import MarkdownDisplay from 'laydown-react';
 
-
-
 const md = `
 
 # Test Markdown
@@ -34,8 +32,9 @@ test 3 without title
 ## Layout 4
 
 test 4
-
+\`\`\`
 Gan Si Huang Xu Dong!
+\`\`\`
 
 
 `;

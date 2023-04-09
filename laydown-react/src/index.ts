@@ -1,6 +1,12 @@
 import MarkdownDisplay from './components/MarkdownDisplay';
 
-export { MarkdownDisplayProps, MarkdownDisplay } from './components/MarkdownDisplay';
-export { ReactRenderingOptions, RenderFunction } from './components/node-renderer';
+export { 
+  type MarkdownDisplayProps, 
+  MarkdownDisplay 
+} from './components/MarkdownDisplay';
+export { 
+  type ReactRenderingOptions, 
+  type RenderFunction 
+} from './components/node-renderer';
 
 export default MarkdownDisplay;
