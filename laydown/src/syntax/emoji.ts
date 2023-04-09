@@ -1,5 +1,5 @@
 import { Node, createTextnode, InlineHandler } from 'commonmark';
-import { ExtendedNodeType } from './common';
+import { ExtendedNodeType } from '../base/common';
 import search from '@jukben/emoji-search';
 
 

@@ -8,17 +8,17 @@ import MathBlock, { MathSpan } from '../nodes/MathBlock';
 import parse from 'html-react-parser';
 
 import { ExtendedNodeDefinition, ExtendedNodeType } from 'laydown';
-import { TableCellContent } from 'laydown'
+import { TableCellContent } from 'laydown';
 import { generateAnchorFromTitle, HtmlParagraphDefinition, isHtmlRecordNode, mergeHtmlNodes } from 'laydown';
 import { TemplateParams } from 'laydown';
 
 import { deepFilterStringChildren } from '../base/common';
-import { MacroStateMaintainer, parseMacro } from '../base/macro';
+import { MacroStateMaintainer, parseMacro } from 'laydown';
 import MarkdownTemplate from '../nodes/TemplateNode';
 import linkIcon from '../assets/icons/link.svg';
 import styles from './md-styles.module.css';
 
-import { HierarchicalNavNode } from '../base/nav';
+import { HierarchicalNavNode } from 'laydown';
 
 
 export type RenderFunction = (props: PropsWithChildren<{ node: Node<ExtendedNodeType> }>) => React.ReactNode;
@@ -190,10 +190,6 @@ export class ReactRenderer implements RendererRecord {
 
   heading({ node, children }: P) {
     const HeadingTag = `h${node.level}` as keyof JSX.IntrinsicElements;
-    const shouldAlignCenter =
-      (this.context.macroStore.check(HeadingTag, 'align-center') ??
-        this.context.macroStore.check('heading', 'align-center')) !== undefined;
-
     const headingString = deepFilterStringChildren(<>{children}</>);
     const headingHash =
       this.context.macroStore.data(HeadingTag, 'use-hash') ??
@@ -216,15 +212,19 @@ export class ReactRenderer implements RendererRecord {
     (currentNode.children = currentNode.children ?? [])
       .push(thisNode);
     this.context.nodeStack.push(thisNode);
+    const shouldAlignCenter =
+      (this.context.macroStore.check(HeadingTag, 'align-center') ??
+        this.context.macroStore.check('heading', 'align-center')) !== undefined;
+
 
     return <HeadingTag style={
       shouldAlignCenter ?
         { textAlign: 'center' } :
         undefined
     }><TitleAnchor to={href} id={HEADER_PREFIX + headingHash} noClick={
-      !!(this.context.macroStore.check(HeadingTag, 'no-link') ??
+        !!(this.context.macroStore.check(HeadingTag, 'no-link') ??
         this.context.macroStore.check('heading', 'no-link'))
-    } />
+      } />
       {children}
 
     </HeadingTag>;

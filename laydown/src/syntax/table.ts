@@ -1,5 +1,5 @@
 import { BlockHandler, StartingConditions, common, BlockStartsHandler } from 'commonmark';
-import { ExtendedNodeType } from './common';
+import { ExtendedNodeType } from '../base/common';
 
 export type TableAlignFormat = 'left' | 'center' | 'right';
 

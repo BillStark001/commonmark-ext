@@ -1,5 +1,5 @@
 import { Node, BlockStartsHandler, BlockHandler, common, InlineHandler, createTextnode } from 'commonmark';
-import { ExtendedNodeType } from './common';
+import { ExtendedNodeType } from '../base/common';
 
 
 const reMathFence = /^\${2,}/;

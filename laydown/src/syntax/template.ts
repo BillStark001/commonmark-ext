@@ -1,6 +1,6 @@
 /* eslint-disable no-useless-escape */
 import { Node, InlineHandler, InlineParser } from 'commonmark';
-import { ExtendedNodeType } from './common';
+import { ExtendedNodeType } from '../base/common';
 
 
 const CHAR_RAW = 'a-zA-Z_$\\-'
