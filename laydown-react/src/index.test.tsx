@@ -1,7 +1,7 @@
-import { ExampleComponent } from '.'
+import { MarkdownDisplay } from '.';
 
 describe('ExampleComponent', () => {
   it('is truthy', () => {
-    expect(ExampleComponent).toBeTruthy()
-  })
-})
+    expect(MarkdownDisplay).toBeTruthy();
+  });
+});

@@ -1,35 +1,55 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import MarkdownDisplay from 'laydown-react';
+
+
+
+const md = `
+
+# Test Markdown
+
+This is a test string of Markdown Parsing.
+
+<!-- heading: align-center -->
+<!-- heading: use-hash#test-hash -->
+# Align Center Heading
+
+|Table|Heading|
+|:----|------:|
+|Table|Content|
+
+
+<!-- layout: start#h4 -->
+
+## Layout 1
+
+test 1
+
+## Layout 2 
+
+test 2
+
+<!-- layout: disp -->
+
+test 3 without title
+
+## Layout 4
+
+test 4
+
+Gan Si Huang Xu Dong!
+
+
+`;
+
 
 function App() {
-  const [count, setCount] = useState(0)
 
   return (
     <div className="App">
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://reactjs.org" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
+      <MarkdownDisplay>
+        { md }
+      </MarkdownDisplay>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;

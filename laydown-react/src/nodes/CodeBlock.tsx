@@ -1,18 +1,8 @@
 import React, { PropsWithChildren } from 'react';
-import styled from 'styled-components';
 import { filterStringChildren } from '../base/common';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 
-const _codeSpan = styled.code`
-  padding: 3px 5px;
-  margin: 1px;
-  border-radius: 4px;
-  background-color: var(--color-bg2);
-`;
-
-const _codeBlock = styled.div`
-  
-`;
+import styles from './md-nodes.module.css';
 
 export type CodeSpanProps = {
   lang?: string;
@@ -24,16 +14,16 @@ export type CodeBlockProps = CodeSpanProps & {
 
 export const CodeSpan = (props: PropsWithChildren<CodeSpanProps>) => {
   const code = filterStringChildren(props.children);
-  return <_codeSpan>
+  return <code className={styles.codeSpan}>
     { code }
-  </_codeSpan>;
+  </code>;
 };
 
 export const CodeBlock = (props: PropsWithChildren<CodeBlockProps>) => {
   const code = filterStringChildren(props.children);
-  return <_codeBlock>
+  return <div className={styles.codeBlock}>
     <SyntaxHighlighter language={props.lang} >
       { code }
     </SyntaxHighlighter>
-  </_codeBlock>;
+  </div>;
 };
