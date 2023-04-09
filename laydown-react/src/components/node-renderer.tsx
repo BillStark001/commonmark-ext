@@ -1,46 +1,30 @@
-import React, { PropsWithChildren } from 'react';
+import React from 'react';
 
-import { HtmlRenderingOptions, Node, NodeTypeDefinition, NodeWalker, NodeWalkerEvent } from 'commonmark';
+import { HtmlRenderingOptions, Node } from 'commonmark';
 
 import { CodeBlock, CodeSpan } from '../nodes/CodeBlock';
 import { deepFilterHtmlNode, handleHtmlElementLink, potentiallyUnsafe, replaceChildren } from './html-renderer';
 import MathBlock, { MathSpan } from '../nodes/MathBlock';
 import parse from 'html-react-parser';
 
-import { ExtendedNodeDefinition, ExtendedNodeType } from 'laydown';
+import { ExtendedNodeType, HierarchicalNavNode } from 'laydown';
 import { TableCellContent } from 'laydown';
-import { generateAnchorFromTitle, HtmlParagraphDefinition, isHtmlRecordNode, mergeHtmlNodes } from 'laydown';
+import { generateAnchorFromTitle, HtmlParagraphDefinition } from 'laydown';
 import { TemplateParams } from 'laydown';
+import { LaydownRenderingContext, LaydownRenderer, RenderFunction } from 'laydown';
 
 import { deepFilterStringChildren } from '../base/common';
-import { MacroStateMaintainer, parseMacro } from 'laydown';
-import MarkdownTemplate from '../nodes/TemplateNode';
 import linkIcon from '../assets/icons/link.svg';
 import styles from './md-styles.module.css';
 
-import { HierarchicalNavNode } from 'laydown';
+type ENode = Node<ExtendedNodeType>;
+type RenderedNode = React.ReactElement;
 
 
-export type RenderFunction = (props: PropsWithChildren<{ node: Node<ExtendedNodeType> }>) => React.ReactNode;
-
-export type RendererRecord = Record<ExtendedNodeType, RenderFunction>;
+type RendererRecord = Record<ExtendedNodeType, RenderFunction<RenderedNode>>;
 
 
-type P = React.PropsWithChildren<{
-  node: Node<ExtendedNodeType>;
-}>;
-
-export type ReactRendereingContext = {
-  macroStore: MacroStateMaintainer;
-  rootNode: HierarchicalNavNode;
-  nodeStack: HierarchicalNavNode[];
-};
-
-export type ReactRenderingOptions = HtmlRenderingOptions & {
-  parseLink?: (raw: string) => string;
-};
-
-
+// title anchor
 
 type TitleAnchorProps = {
   to: string,
@@ -68,29 +52,46 @@ const TitleAnchor = (props: TitleAnchorProps) => {
 
 const HEADER_PREFIX = 'md-';
 
-export class ReactRenderer implements RendererRecord {
+// types
+
+
+export type TemplateNodeProps = {
+  params: TemplateParams,
+  options: ReactRenderingOptions,
+};
+
+export type TemplateNode = (props: TemplateNodeProps) => RenderedNode;
+
+const DefaultTemplateNode: TemplateNode = ({ params }: TemplateNodeProps) => {
+  return <>
+    <span>Template Node</span>
+    <br />
+    <span>{JSON.stringify(params)}</span>
+  </>;
+};
+
+export type ReactRenderingOptions = HtmlRenderingOptions & {
+  parseLink?: (raw: string) => string;
+  templateHandler?: TemplateNode;
+};
+
+
+
+// renderers
+
+export class LaydownNodeRenderer implements RendererRecord {
 
   readonly options: ReactRenderingOptions;
-  readonly context: ReactRendereingContext;
 
   constructor(options?: ReactRenderingOptions) {
     this.options = Object.assign({
       softbreak: '\n',
     }, options);
-    this.context = {
-      macroStore: new MacroStateMaintainer(),
-      rootNode: {
-        name: '',
-        hierarchy: 0
-      },
-      nodeStack: []
-    };
-    this.context.nodeStack.push(this.context.rootNode);
   }
 
   // renderers
 
-  text({ node }: P) {
+  text(_context: LaydownRenderingContext, node: ENode) {
     return <>{node.literal}</>;
   }
 
@@ -102,7 +103,7 @@ export class ReactRenderer implements RendererRecord {
     return <br />;
   }
 
-  link({ node, children }: P) {
+  link(_context: LaydownRenderingContext, node: ENode, children: RenderedNode[]) {
     let href: string | undefined = undefined;
     let title: string | undefined = undefined;
     if (!(this.options.safe && potentiallyUnsafe(node.destination))) {
@@ -115,7 +116,7 @@ export class ReactRenderer implements RendererRecord {
   }
 
   // TODO escape XML ...?
-  image({ node }: P) {
+  image(_context: LaydownRenderingContext, node: ENode) {
     if (this.options.safe && potentiallyUnsafe(node.destination)) {
       return <span>[ERROR: POTENTIALLY UNSAFE LINK OMITTED]</span>;
     } else {
@@ -124,32 +125,29 @@ export class ReactRenderer implements RendererRecord {
     }
   }
 
-  emph({ children }: P) {
+  emph(_context: LaydownRenderingContext, _node: ENode, children: RenderedNode[]) {
     return <em>{children}</em>;
   }
 
-  strong({ children }: P) {
+  strong(_context: LaydownRenderingContext, _node: ENode, children: RenderedNode[]) {
     return <strong>{children}</strong>;
   }
 
-  html_inline({ node }: P) {
-    // console.log(node.parent?.type, JSON.stringify(node.literal));
-    const macros = parseMacro(node.literal ?? '');
-    macros.forEach(([, macro]) => this.context.macroStore.merge(macro));
+  html_inline(_context: LaydownRenderingContext, node: ENode) {
     if (this.options.safe)
       return <>[ERROR: RAW HTML OMITTED]</>;
-    return deepFilterHtmlNode(parse(node.literal ?? ''));
+    return <>{deepFilterHtmlNode(parse(node.literal ?? ''))}</>;
   }
 
-  html_block({ node, children }: P) {
-    return this.html_inline({ node, children });
+  html_block(context: LaydownRenderingContext, node: ENode) {
+    return this.html_inline(context, node);
   }
 
-  code({ node }: P) {
+  code(_context: LaydownRenderingContext, node: ENode) {
     return <CodeSpan>{node.literal}</CodeSpan>;
   }
 
-  code_block({ node }: P) {
+  code_block(_context: LaydownRenderingContext, node: ENode) {
     let lang: string | undefined;
     const info_words = node.info ? node.info.split(/\s+/) : [];
     if (info_words.length > 0 && info_words[0].length > 0) {
@@ -162,7 +160,7 @@ export class ReactRenderer implements RendererRecord {
 
 
 
-  paragraph({ node, children }: P) {
+  paragraph(_context: LaydownRenderingContext, node: ENode, children: RenderedNode[]) {
     const grandparent = node.parent?.parent;
     if (grandparent && grandparent.type === 'list') {
       if (grandparent.listTight) {
@@ -172,15 +170,15 @@ export class ReactRenderer implements RendererRecord {
     return <p>{children}</p>;
   }
 
-  block_quote({ children }: P) {
+  block_quote(_context: LaydownRenderingContext, _node: ENode, children: RenderedNode[]) {
     return <blockquote>{children}</blockquote>;
   }
 
-  item({ children }: P) {
+  item(_context: LaydownRenderingContext, _node: ENode, children: RenderedNode[]) {
     return <li>{children}</li>;
   }
 
-  list({ node, children }: P) {
+  list(_context: LaydownRenderingContext, node: ENode, children: RenderedNode[]) {
     const start = node.listStart;
     const _start = (start !== undefined && start !== 1) ? start : undefined;
     return node.listType === 'bullet' ?
@@ -188,21 +186,21 @@ export class ReactRenderer implements RendererRecord {
       (<ol start={_start}>{children}</ol>);
   }
 
-  heading({ node, children }: P) {
+  heading(context: LaydownRenderingContext, node: ENode, children: RenderedNode[]) {
     const HeadingTag = `h${node.level}` as keyof JSX.IntrinsicElements;
     const headingString = deepFilterStringChildren(<>{children}</>);
     const headingHash =
-      this.context.macroStore.data(HeadingTag, 'use-hash') ??
-      this.context.macroStore.data('heading', 'use-hash') ??
+      context.macroStore.data(HeadingTag, 'use-hash') ??
+      context.macroStore.data('heading', 'use-hash') ??
       generateAnchorFromTitle(headingString);
 
     const href = '#' + HEADER_PREFIX + headingHash;
 
     // process node level
-    let currentNode = this.context.nodeStack[this.context.nodeStack.length - 1];
+    let currentNode = context.nodeStack[context.nodeStack.length - 1];
     while (currentNode.hierarchy >= (node.level ?? 1)) {
-      this.context.nodeStack.pop();
-      currentNode = this.context.nodeStack[this.context.nodeStack.length - 1];
+      context.nodeStack.pop();
+      currentNode = context.nodeStack[context.nodeStack.length - 1];
     }
     const thisNode = {
       name: headingString.replace(/\n\r/g, ' ').trim(),
@@ -211,19 +209,21 @@ export class ReactRenderer implements RendererRecord {
     };
     (currentNode.children = currentNode.children ?? [])
       .push(thisNode);
-    this.context.nodeStack.push(thisNode);
+    context.nodeStack.push(thisNode);
     const shouldAlignCenter =
-      (this.context.macroStore.check(HeadingTag, 'align-center') ??
-        this.context.macroStore.check('heading', 'align-center')) !== undefined;
+      (context.macroStore.check(HeadingTag, 'align-center') ??
+        context.macroStore.check('heading', 'align-center')) !== undefined;
 
 
     return <HeadingTag style={
       shouldAlignCenter ?
         { textAlign: 'center' } :
         undefined
-    }><TitleAnchor to={href} id={HEADER_PREFIX + headingHash} noClick={
-        !!(this.context.macroStore.check(HeadingTag, 'no-link') ??
-        this.context.macroStore.check('heading', 'no-link'))
+    }
+    >
+      <TitleAnchor to={href} id={HEADER_PREFIX + headingHash} noClick={
+        !!(context.macroStore.check(HeadingTag, 'no-link') ??
+          context.macroStore.check('heading', 'no-link'))
       } />
       {children}
 
@@ -235,19 +235,19 @@ export class ReactRenderer implements RendererRecord {
   }
 
 
-  document({ children }: P) {
-    return children;
+  document(_context: LaydownRenderingContext, _node: ENode, children: RenderedNode[]) {
+    return <>{children}</>;
   }
 
-  math_block({ node }: P) {
+  math_block(_context: LaydownRenderingContext, node: ENode) {
     return <MathBlock>{node.literal}</MathBlock>;
   }
 
-  math_inline({ node }: P) {
+  math_inline(_context: LaydownRenderingContext, node: ENode) {
     return <MathSpan>{node.literal}</MathSpan>;
   }
 
-  table({ children }: P) {
+  table(_context: LaydownRenderingContext, _node: ENode, children: RenderedNode[]) {
     return <table>
       {React.Children.toArray(children)[0]}
       <tbody>
@@ -256,21 +256,21 @@ export class ReactRenderer implements RendererRecord {
     </table>;
   }
 
-  table_head({ children }: P) {
+  table_head(_context: LaydownRenderingContext, _node: ENode, children: RenderedNode[]) {
     return <thead><tr>{children}</tr></thead>;
   }
 
-  table_row({ children }: P) {
+  table_row(_context: LaydownRenderingContext, _node: ENode, children: RenderedNode[]) {
     return <tr>{children}</tr>;
   }
 
-  table_cell({ node, children }: P) {
+  table_cell(_context: LaydownRenderingContext, node: ENode, children: RenderedNode[]) {
     const content = (node.customData as TableCellContent);
     const CellTag = (content.isHeader ? 'th' : 'td') as keyof JSX.IntrinsicElements;
     return <CellTag align={content.align}>{children}</CellTag>;
   }
 
-  html_paragraph({ node, children }: P) {
+  html_paragraph(_context: LaydownRenderingContext, node: ENode, children: RenderedNode[]) {
     const { startTag, endTag, tagName } = node.customData as HtmlParagraphDefinition;
     const isValidNode = startTag !== undefined || tagName !== undefined;
     if (!isValidNode)
@@ -284,7 +284,7 @@ export class ReactRenderer implements RendererRecord {
         if (htmlBlock.length === 0)
           return <>{children}</>;
         htmlBlock[0] = replaceChildren(htmlBlock[0], children);
-        return htmlBlock.map(x => handleHtmlElementLink(x, this.options.parseLink));
+        return <>{htmlBlock.map(x => handleHtmlElementLink(x, this.options.parseLink))}</>;
       }
       else
         return handleHtmlElementLink(
@@ -295,18 +295,19 @@ export class ReactRenderer implements RendererRecord {
     return <>{children}</>;
   }
 
-  html_paragraph_text(p: P) {
-    return this.text(p);
+  html_paragraph_text(context: LaydownRenderingContext, node: ENode) {
+    return this.text(context, node);
   }
 
-  template({ node }: P) {
+  template(_context: LaydownRenderingContext, node: ENode) {
     const template = node.customData as TemplateParams;
+    const TemplateHandler = this.options.templateHandler ?? DefaultTemplateNode;
     if (template !== undefined)
-      return <MarkdownTemplate template={template} options={this.options} definition={ExtendedNodeDefinition} />;
+      return <TemplateHandler params={template} options={this.options} />;
     return <></>;
   }
 
-  emoji({ node }: P) {
+  emoji(_context: LaydownRenderingContext, node: ENode) {
     const emoji = node.literal ?? '';
     /*
     if (emoji.startsWith('fontawesome')) {
@@ -318,60 +319,40 @@ export class ReactRenderer implements RendererRecord {
 
 }
 
+export class LaydownReactRenderer extends LaydownRenderer<RenderedNode> {
 
-export const render = (
-  ast: Node<ExtendedNodeType>,
-  options?: ReactRenderingOptions,
-  definition?: NodeTypeDefinition<ExtendedNodeType>
-) => {
-  const walker = new NodeWalker(ast, definition);
-  let event: NodeWalkerEvent<ExtendedNodeType> | undefined = undefined;
+  private readonly inner: LaydownNodeRenderer;
 
-  // post processing
-  while ((event = walker.next())) {
-    const { node } = event;
-    if (isHtmlRecordNode(node)) {
-      const reducedNode = mergeHtmlNodes(node, 'html_paragraph', 'html_paragraph_text');
-      walker.resumeAt(reducedNode, true);
-    }
+  constructor(options?: ReactRenderingOptions) {
+    super();
+    this.inner = new LaydownNodeRenderer(options);
   }
 
-  // render
-  const stack: React.ReactNode[][] = [[]];
-
-  walker.resumeAt(ast, true);
-  const renderers = new ReactRenderer(options);
-  let lastLine = -1;
-  while ((event = walker.next())) {
-    const { node, entering } = event;
-    const func = (renderers[node.type] ?? (() => <></>)) as RenderFunction;
-    const renderer = func.bind(renderers);
-
-    if (ExtendedNodeDefinition.isContainer(node)) {
-      if (entering) {
-        const linePos = node.sourcepos[0][0];
-        if (linePos > lastLine) {
-          const diff = linePos - lastLine;
-          renderers.context.macroStore.newLine();
-          if (diff > 1)
-            renderers.context.macroStore.newLine();
-          lastLine = linePos;
-        }
-        stack.push([]);
-      }
-      else {
-        const children = React.Children.map(stack.pop(), (n, i) => (<React.Fragment key={`node_${i}`}>{n}</React.Fragment>));
-        stack[stack.length - 1].push(renderer({
-          node: node,
-          children: children
-        }));
-      }
-    } else {
-      stack[stack.length - 1].push(renderer({ node: node }));
-    }
+  getRenderer(type: ExtendedNodeType): RenderFunction<RenderedNode> {
+    const ret = this.inner[type as unknown as keyof LaydownNodeRenderer] as RenderFunction<RenderedNode>;
+    if (ret == undefined)
+      return (() => <>[WARNING: Type {type}'s renderer not found]</>);
+    return (c, n, c_) => ret.bind(this.inner)(c, n, React.Children.map(c_, (n, i) => (<React.Fragment key={`node_${i}`}>{n}</React.Fragment>)));
   }
-  // TODO nav tree
-  return <>
-    {stack[stack.length - 1]}
-  </>;
-};
+
+  stringify(node: Node<ExtendedNodeType>, children: RenderedNode[]): string {
+    if (node.type === 'html_block' || node.type === 'html_inline')
+      return node.literal ?? '';
+    else if (node.type === 'heading' || node.type === 'paragraph')
+      return deepFilterStringChildren(<>{children}</>);
+    throw new Error('Method not implemented.');
+  }
+
+  result(): { nav: HierarchicalNavNode | undefined; render: RenderedNode[] | undefined; } {
+    const { nav, render } = super.result();
+
+
+    return {
+      nav,
+      render: React.Children.map(render ?? [], (n, i) => (<React.Fragment key={`node_${i}`}>{n}</React.Fragment>))
+    };
+  }
+
+}
+
+export default LaydownReactRenderer;

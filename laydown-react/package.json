@@ -22,7 +22,6 @@
     "test:watch": "react-scripts test --env=jsdom"
   },
   "dependencies": {
-    "@types/react-syntax-highlighter": "^15.5.6",
     "commonmark": "file:../../commonmark",
     "html-react-parser": "^3.0.15",
     "laydown": "file:../laydown",
@@ -30,6 +29,7 @@
     "path-browserify": "^1.0.1",
     "prop-types": "^15.7.2",
     "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "react-syntax-highlighter": "^15.5.0"
   },
   "devDependencies": {
@@ -41,6 +41,7 @@
     "@types/path-browserify": "^1.0.0",
     "@types/react": "^18.0.27",
     "@types/react-dom": "^18.0.10",
+    "@types/react-syntax-highlighter": "^15.5.6",
     "cross-env": "^7.0.2",
     "npm-run-all": "^4.1.5",
     "prettier": "^2.0.4",

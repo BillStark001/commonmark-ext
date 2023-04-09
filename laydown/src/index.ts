@@ -60,7 +60,7 @@ export * from './base/macro';
 export * from './base/nav';
 
 export {
-  type LayDownRenderingContext,
+  type LaydownRenderingContext,
   type RenderFunction, 
-  LayDownRenderer
+  LaydownRenderer
 } from './renderer';

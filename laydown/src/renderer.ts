@@ -8,15 +8,15 @@ type ENode = Node<ExtendedNodeType>;
 
 const HEADER_PREFIX = 'md-';
 
-export type RenderFunction<T> = (context: LayDownRenderingContext, node: Node<ExtendedNodeType>, children?: T[]) => T;
+export type RenderFunction<T> = (context: LaydownRenderingContext, node: Node<ExtendedNodeType>, children?: T[]) => T;
 
-export interface LayDownRenderingContext {
+export interface LaydownRenderingContext {
   readonly macroStore: MacroStateMaintainer;
   readonly rootNode: HierarchicalNavNode;
   readonly nodeStack: HierarchicalNavNode[];
 }
 
-export abstract class LayDownRenderer<T> implements LayDownRenderingContext {
+export abstract class LaydownRenderer<T> implements LaydownRenderingContext {
   macroStore!: MacroStateMaintainer;
   rootNode!: HierarchicalNavNode;
   nodeStack!: HierarchicalNavNode[];
@@ -152,4 +152,4 @@ export abstract class LayDownRenderer<T> implements LayDownRenderingContext {
 
 }
 
-export default LayDownRenderer;
+export default LaydownRenderer;
