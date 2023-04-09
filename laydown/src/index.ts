@@ -5,9 +5,9 @@ import { MathHandler, MathTrigger, parseInlineMathFence } from './syntax/math';
 import { TableHandler, TableHeadHandler, TableRowHandler, TableCellHandler, TableTrigger } from './syntax/table';
 import { parseInlineTemplate } from './syntax/template';
 
-export { 
-  ExtendedNodeDefinition, 
-  type ExtendedNodeType 
+export {
+  ExtendedNodeDefinition,
+  type ExtendedNodeType
 } from './base/common';
 
 export const ExtendedSyntaxOptions: BlockParsingOptions<ExtendedNodeType> = {
@@ -36,20 +36,20 @@ export const ExtendedSyntaxOptions: BlockParsingOptions<ExtendedNodeType> = {
 // definitions
 
 export type {
-  TableCellContent, 
-  TableAlignFormat, 
-  TableContent, 
+  TableCellContent,
+  TableAlignFormat,
+  TableContent,
   TableReference
 } from './syntax/table';
 export {
-  compileTemplate, 
-  type TemplateParams, 
+  compileTemplate,
+  type TemplateParams,
   type TemplateParamsType
 } from './syntax/template';
 export {
-  generateAnchorFromTitle, 
-  type HtmlParagraphDefinition, 
-  isHtmlRecordNode, 
+  generateAnchorFromTitle,
+  type HtmlParagraphDefinition,
+  isHtmlRecordNode,
   mergeHtmlNodes
 } from './syntax/html';
 
@@ -58,9 +58,10 @@ export {
 
 export * from './base/macro';
 export * from './base/nav';
+export * from './base/layout';
 
 export {
   type LaydownRenderingContext,
-  type RenderFunction, 
+  type RenderFunction,
   LaydownRenderer
 } from './renderer';

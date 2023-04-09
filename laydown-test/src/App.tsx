@@ -23,15 +23,17 @@ test 1
 
 ## Layout 2 
 
-test 2
+\`test\` 2
 
 <!-- layout: disp -->
 
 test 3 without title
 
+<!-- heading: no-link -->
 ## Layout 4
 
 test 4
+
 \`\`\`
 Gan Si Huang Xu Dong!
 \`\`\`
@@ -39,6 +41,9 @@ Gan Si Huang Xu Dong!
 
 Bai Qiu Dai Chong Feng!
 
+@[test-template]
+
+@[test-template-2](a=1, b="2")
 
 
 `;

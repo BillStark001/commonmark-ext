@@ -7,15 +7,16 @@ import { deepFilterHtmlNode, handleHtmlElementLink, potentiallyUnsafe, replaceCh
 import MathBlock, { MathSpan } from '../nodes/MathBlock';
 import parse from 'html-react-parser';
 
-import { ExtendedNodeType, HierarchicalNavNode } from 'laydown';
+import { ExtendedNodeType, HierarchicalNavNode, LayoutParams, LayoutSlotParams } from 'laydown';
 import { TableCellContent } from 'laydown';
-import { generateAnchorFromTitle, HtmlParagraphDefinition } from 'laydown';
+import { HtmlParagraphDefinition } from 'laydown';
 import { TemplateParams } from 'laydown';
 import { LaydownRenderingContext, LaydownRenderer, RenderFunction } from 'laydown';
 
 import { deepFilterStringChildren } from '../base/common';
 import linkIcon from '../assets/icons/link.svg';
 import styles from './md-styles.module.css';
+import { ReactLayout, ReactLayoutSlot } from '../nodes/LayoutNode';
 
 type ENode = Node<ExtendedNodeType>;
 type RenderedNode = React.ReactElement;
@@ -35,10 +36,10 @@ type TitleAnchorProps = {
 const TitleAnchor = (props: TitleAnchorProps) => {
   const { to, id, noClick } = props;
 
-  return <div className={styles.titleAnchor}>
+  return <div className={styles['title-anchor']}>
     <div>
 
-      <span className={styles.titleId} id={id}></span>
+      <span className={styles['title-id']} id={id}></span>
       {
         !noClick &&
         <a href={to}>
@@ -50,10 +51,7 @@ const TitleAnchor = (props: TitleAnchorProps) => {
   </div>;
 };
 
-const HEADER_PREFIX = 'md-';
-
 // types
-
 
 export type TemplateNodeProps = {
   params: TemplateParams,
@@ -74,7 +72,6 @@ export type ReactRenderingOptions = HtmlRenderingOptions & {
   parseLink?: (raw: string) => string;
   templateHandler?: TemplateNode;
 };
-
 
 
 // renderers
@@ -188,28 +185,9 @@ export class LaydownNodeRenderer implements RendererRecord {
 
   heading(context: LaydownRenderingContext, node: ENode, children: RenderedNode[]) {
     const HeadingTag = `h${node.level}` as keyof JSX.IntrinsicElements;
-    const headingString = deepFilterStringChildren(<>{children}</>);
-    const headingHash =
-      context.macroStore.data(HeadingTag, 'use-hash') ??
-      context.macroStore.data('heading', 'use-hash') ??
-      generateAnchorFromTitle(headingString);
+    const href = context.navHref ?? '#null';
 
-    const href = '#' + HEADER_PREFIX + headingHash;
 
-    // process node level
-    let currentNode = context.nodeStack[context.nodeStack.length - 1];
-    while (currentNode.hierarchy >= (node.level ?? 1)) {
-      context.nodeStack.pop();
-      currentNode = context.nodeStack[context.nodeStack.length - 1];
-    }
-    const thisNode = {
-      name: headingString.replace(/\n\r/g, ' ').trim(),
-      hierarchy: node.level ?? 1,
-      href: href,
-    };
-    (currentNode.children = currentNode.children ?? [])
-      .push(thisNode);
-    context.nodeStack.push(thisNode);
     const shouldAlignCenter =
       (context.macroStore.check(HeadingTag, 'align-center') ??
         context.macroStore.check('heading', 'align-center')) !== undefined;
@@ -221,7 +199,7 @@ export class LaydownNodeRenderer implements RendererRecord {
         undefined
     }
     >
-      <TitleAnchor to={href} id={HEADER_PREFIX + headingHash} noClick={
+      <TitleAnchor to={href} id={href.replace(/^#?/, '')} key='anchor' noClick={
         !!(context.macroStore.check(HeadingTag, 'no-link') ??
           context.macroStore.check('heading', 'no-link'))
       } />
@@ -319,6 +297,8 @@ export class LaydownNodeRenderer implements RendererRecord {
 
 }
 
+const resetChildrenKey = (c: RenderedNode[]) => c.map((n, i) => (<React.Fragment key={`node_${i}`}>{n}</React.Fragment>));
+
 export class LaydownReactRenderer extends LaydownRenderer<RenderedNode> {
 
   private readonly inner: LaydownNodeRenderer;
@@ -328,11 +308,16 @@ export class LaydownReactRenderer extends LaydownRenderer<RenderedNode> {
     this.inner = new LaydownNodeRenderer(options);
   }
 
+  getChildren(): RenderedNode[] | undefined {
+    const children = super.getChildren();
+    return resetChildrenKey(children ?? []);
+  }
+
   getRenderer(type: ExtendedNodeType): RenderFunction<RenderedNode> {
     const ret = this.inner[type as unknown as keyof LaydownNodeRenderer] as RenderFunction<RenderedNode>;
     if (ret == undefined)
       return (() => <>[WARNING: Type {type}'s renderer not found]</>);
-    return (c, n, c_) => ret.bind(this.inner)(c, n, React.Children.map(c_, (n, i) => (<React.Fragment key={`node_${i}`}>{n}</React.Fragment>)));
+    return ret.bind(this.inner);
   }
 
   stringify(node: Node<ExtendedNodeType>, children: RenderedNode[]): string {
@@ -345,13 +330,24 @@ export class LaydownReactRenderer extends LaydownRenderer<RenderedNode> {
 
   result(): { nav: HierarchicalNavNode | undefined; render: RenderedNode[] | undefined; } {
     const { nav, render } = super.result();
-
-
     return {
       nav,
-      render: React.Children.map(render ?? [], (n, i) => (<React.Fragment key={`node_${i}`}>{n}</React.Fragment>))
+      render: resetChildrenKey(render ?? []),
     };
+  }  
+  
+  renderLayout(params: LayoutParams, children: RenderedNode[]): RenderedNode {
+    return <ReactLayout {...params}>
+      { resetChildrenKey(children) }
+    </ReactLayout>;
   }
+
+  renderLayoutSlot(params: LayoutSlotParams, children: RenderedNode[]): RenderedNode {
+    return <ReactLayoutSlot {...params}>
+      { resetChildrenKey(children) }
+    </ReactLayoutSlot>;
+  }
+
 
 }
 

@@ -14,14 +14,14 @@ export type CodeBlockProps = CodeSpanProps & {
 
 export const CodeSpan = (props: PropsWithChildren<CodeSpanProps>) => {
   const code = filterStringChildren(props.children);
-  return <code className={styles.codeSpan}>
+  return <code className={styles['code-span']}>
     { code }
   </code>;
 };
 
 export const CodeBlock = (props: PropsWithChildren<CodeBlockProps>) => {
   const code = filterStringChildren(props.children);
-  return <div className={styles.codeBlock}>
+  return <div className={styles['code-block']}>
     <SyntaxHighlighter language={props.lang} >
       { code }
     </SyntaxHighlighter>

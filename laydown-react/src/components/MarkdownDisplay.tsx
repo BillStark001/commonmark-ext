@@ -7,11 +7,12 @@ import { delay } from '../base/common';
 
 export type MarkdownDisplayProps = {
   content?: string;
+  options?: ReactRenderingOptions;
 };
 
 const reWithSuffix = /\.[\w]{1,8}$/;
 
-const options: ReactRenderingOptions = {
+const defaultOptions: ReactRenderingOptions = {
   esc: common.escapeXml,
   parseLink: (raw) => {
     const suffix = reWithSuffix.test(raw) ? '' : '.md';
@@ -31,7 +32,7 @@ export const MarkdownDisplay = (props: PropsWithChildren<MarkdownDisplayProps>) 
   }, [md]);
 
   const { render } = useMemo(() => {
-    const renderer = new LaydownReactRenderer(options);
+    const renderer = new LaydownReactRenderer(props.options ?? defaultOptions);
     renderer.walk(ast);
     return renderer.result();
   }, [ast]);
@@ -42,7 +43,6 @@ export const MarkdownDisplay = (props: PropsWithChildren<MarkdownDisplayProps>) 
       element?.scrollIntoView({ block: 'start' });
     }).catch(console.error);
   }, [render]);
-
 
   return <>
     {render}

@@ -1,15 +1,12 @@
-import { MathComponent } from 'mathjax-react';
+import { MathJax } from 'better-react-mathjax';
 import React, { PropsWithChildren } from 'react';
-import { filterStringChildren } from '../base/common';
 
 export const MathSpan = (props: PropsWithChildren<object>) => {
-  const tex = filterStringChildren(props.children);
-  return <MathComponent tex={tex} display={false} />;
+  return <MathJax inline>{ props.children }</MathJax>;
 };
 
 export const MathBlock = (props: PropsWithChildren<object>) => {
-  const tex = filterStringChildren(props.children);
-  return <MathComponent tex={tex} />;
+  return <MathJax>{ props.children }</MathJax>;
 };
 
 export default MathBlock;

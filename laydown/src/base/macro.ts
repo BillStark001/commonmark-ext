@@ -1,7 +1,7 @@
 
 
 const reHtmlComment = /<!--([\s\S]*?)-->/g;
-const reMacroFormat = /(?:([\w-]+)\s*:\s*)?([\w-]+)(?:\$(set|restore|one[-_]time|next[-_]line))?(?:#([\w-]+))?/g;
+const reMacroFormat = /(?:([\w-]+)\s*:\s*)?([\w-]+)(?:\$(set|restore|one[-_]time|next[-_]line))?(?:#([\w\-.~!#$&'()*+,\/:;=?@[\]]+))?/g;
 
 export const parseMacro = (str: string) => {
   const ans: [number, MacroRecord][] = [];

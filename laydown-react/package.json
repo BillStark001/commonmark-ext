@@ -22,6 +22,7 @@
     "test:watch": "react-scripts test --env=jsdom"
   },
   "dependencies": {
+    "better-react-mathjax": "^2.0.2",
     "commonmark": "file:../../commonmark",
     "html-react-parser": "^3.0.15",
     "laydown": "file:../laydown",

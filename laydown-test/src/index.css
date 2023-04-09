@@ -69,5 +69,6 @@ button:focus-visible {
 }
 
 .App {
-  width: 100vw;
+  width: 90vw;
+  margin: 0 5vw;
 }
