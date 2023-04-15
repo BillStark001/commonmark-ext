@@ -1,8 +1,13 @@
 import React, { PropsWithChildren } from 'react';
-import { filterStringChildren } from '../base/common';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 
 import styles from './md-nodes.module.css';
+
+export const filterStringChildren = (children: React.ReactNode | React.ReactNode[]) => {
+  return React.Children.toArray(children)
+    .filter(x => typeof x === 'string')
+    .join('');
+};
 
 export type CodeSpanProps = {
   lang?: string;

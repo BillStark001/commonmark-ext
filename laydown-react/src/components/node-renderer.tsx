@@ -1,10 +1,8 @@
 import React from 'react';
 
-import { HtmlRenderingOptions, Node } from 'commonmark';
+import { Node } from 'commonmark';
 
-import { CodeBlock, CodeSpan } from '../nodes/CodeBlock';
 import { deepFilterHtmlNode, handleHtmlElementLink, potentiallyUnsafe, replaceChildren } from './html-renderer';
-import MathBlock, { MathSpan } from '../nodes/MathBlock';
 import parse from 'html-react-parser';
 
 import { ExtendedNodeType, HierarchicalNavNode, LayoutParams, LayoutSlotParams } from 'laydown';
@@ -14,9 +12,8 @@ import { TemplateParams } from 'laydown';
 import { LaydownRenderingContext, LaydownRenderer, RenderFunction } from 'laydown';
 
 import { deepFilterStringChildren } from '../base/common';
-import linkIcon from '../assets/icons/link.svg';
-import styles from './md-styles.module.css';
-import { ReactLayout, ReactLayoutSlot } from '../nodes/LayoutNode';
+import { DefaultLayoutNode, DefaultLayoutSlotNode, } from '../nodes/LayoutNode';
+import { CodeNode, DefaultCodeNode, DefaultTemplateNode, DefaultTitleAnchor, ReactRenderingOptions } from './options';
 
 type ENode = Node<ExtendedNodeType>;
 type RenderedNode = React.ReactElement;
@@ -25,65 +22,20 @@ type RenderedNode = React.ReactElement;
 type RendererRecord = Record<ExtendedNodeType, RenderFunction<RenderedNode>>;
 
 
-// title anchor
-
-type TitleAnchorProps = {
-  to: string,
-  id: string,
-  noClick?: boolean,
-};
-
-const TitleAnchor = (props: TitleAnchorProps) => {
-  const { to, id, noClick } = props;
-
-  return <div className={styles['title-anchor']}>
-    <div>
-
-      <span className={styles['title-id']} id={id}></span>
-      {
-        !noClick &&
-        <a href={to}>
-          <img src={linkIcon} />
-        </a>
-      }
-    </div>
-
-  </div>;
-};
-
-// types
-
-export type TemplateNodeProps = {
-  params: TemplateParams,
-  options: ReactRenderingOptions,
-};
-
-export type TemplateNode = (props: TemplateNodeProps) => RenderedNode;
-
-const DefaultTemplateNode: TemplateNode = ({ params }: TemplateNodeProps) => {
-  return <>
-    <span>Template Node</span>
-    <br />
-    <span>{JSON.stringify(params)}</span>
-  </>;
-};
-
-export type ReactRenderingOptions = HtmlRenderingOptions & {
-  parseLink?: (raw: string) => string;
-  templateHandler?: TemplateNode;
-};
-
-
 // renderers
 
 export class LaydownNodeRenderer implements RendererRecord {
 
   readonly options: ReactRenderingOptions;
 
+  private readonly CodeRenderer: CodeNode;
+
   constructor(options?: ReactRenderingOptions) {
     this.options = Object.assign({
       softbreak: '\n',
     }, options);
+
+    this.CodeRenderer = this.options.codeHandler ?? DefaultCodeNode;
   }
 
   // renderers
@@ -141,7 +93,8 @@ export class LaydownNodeRenderer implements RendererRecord {
   }
 
   code(_context: LaydownRenderingContext, node: ENode) {
-    return <CodeSpan>{node.literal}</CodeSpan>;
+    const CodeNode = this.CodeRenderer;
+    return <CodeNode type='code' content={node.literal ?? ''} />;
   }
 
   code_block(_context: LaydownRenderingContext, node: ENode) {
@@ -150,9 +103,8 @@ export class LaydownNodeRenderer implements RendererRecord {
     if (info_words.length > 0 && info_words[0].length > 0) {
       lang = this.options.esc?.(info_words[0]) ?? info_words[0];
     }
-    if (lang === 'math' || lang === 'latex')
-      return <MathBlock>{node.literal}</MathBlock>;
-    return <CodeBlock lang={lang}>{node.literal}</CodeBlock>;
+    const CodeNode = this.CodeRenderer;
+    return <CodeNode type='code' block={true} lang={lang} content={node.literal ?? ''} />;
   }
 
 
@@ -192,6 +144,7 @@ export class LaydownNodeRenderer implements RendererRecord {
       (context.macroStore.check(HeadingTag, 'align-center') ??
         context.macroStore.check('heading', 'align-center')) !== undefined;
 
+    const TitleAnchor = this.options.titleAnchorHandler ?? DefaultTitleAnchor;
 
     return <HeadingTag style={
       shouldAlignCenter ?
@@ -218,11 +171,13 @@ export class LaydownNodeRenderer implements RendererRecord {
   }
 
   math_block(_context: LaydownRenderingContext, node: ENode) {
-    return <MathBlock>{node.literal}</MathBlock>;
+    const CodeNode = this.CodeRenderer;
+    return <CodeNode type='math' block={true} content={node.literal ?? ''} />;
   }
 
   math_inline(_context: LaydownRenderingContext, node: ENode) {
-    return <MathSpan>{node.literal}</MathSpan>;
+    const CodeNode = this.CodeRenderer;
+    return <CodeNode type='math' content={node.literal ?? ''} />;
   }
 
   table(_context: LaydownRenderingContext, _node: ENode, children: RenderedNode[]) {
@@ -302,9 +257,11 @@ const resetChildrenKey = (c: RenderedNode[]) => c.map((n, i) => (<React.Fragment
 export class LaydownReactRenderer extends LaydownRenderer<RenderedNode> {
 
   private readonly inner: LaydownNodeRenderer;
+  private readonly options: ReactRenderingOptions;
 
   constructor(options?: ReactRenderingOptions) {
     super();
+    this.options = options ?? {};
     this.inner = new LaydownNodeRenderer(options);
   }
 
@@ -337,15 +294,17 @@ export class LaydownReactRenderer extends LaydownRenderer<RenderedNode> {
   }  
   
   renderLayout(params: LayoutParams, children: RenderedNode[]): RenderedNode {
-    return <ReactLayout {...params}>
+    const LayoutNode = this.options.layoutHandler ?? DefaultLayoutNode;
+    return <LayoutNode {...params}>
       { resetChildrenKey(children) }
-    </ReactLayout>;
+    </LayoutNode>;
   }
 
   renderLayoutSlot(params: LayoutSlotParams, children: RenderedNode[]): RenderedNode {
-    return <ReactLayoutSlot {...params}>
+    const LayoutSlotNode = this.options.layoutSlotHandler ?? DefaultLayoutSlotNode;
+    return <LayoutSlotNode {...params}>
       { resetChildrenKey(children) }
-    </ReactLayoutSlot>;
+    </LayoutSlotNode>;
   }
 
 

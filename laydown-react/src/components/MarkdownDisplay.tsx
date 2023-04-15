@@ -1,9 +1,10 @@
 import React, { PropsWithChildren, useEffect, useMemo } from 'react';
 import { ExtendedSyntaxOptions } from 'laydown';
 import { filterStringChildren } from '../base/common';
-import LaydownReactRenderer, { ReactRenderingOptions } from './node-renderer';
+import { ReactRenderingOptions } from './options';
 import { BlockParser, common } from 'commonmark';
 import { delay } from '../base/common';
+import LaydownReactRenderer from './node-renderer';
 
 export type MarkdownDisplayProps = {
   content?: string;
