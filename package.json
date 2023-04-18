@@ -23,6 +23,8 @@
     "typescript": "^5.0.4"
   },
   "scripts": {
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "init": "npm i ; npm --prefix laydown i ; npm --prefix laydown-react i ; npm --prefix laydown-test i",
+    "dev": "npm --prefix laydown-test run dev"
   }
 }

@@ -3,8 +3,7 @@
   "type": "commonjs",
   "directories": {
     "lib": "./src"
-  },  
-  "main": "./dist/index.js",
+  },
   "module": "./src/index.ts",
   "exports": {
     ".": {
