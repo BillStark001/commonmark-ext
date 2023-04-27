@@ -1,6 +1,7 @@
 {
   "name": "laydown-react",
   "type": "commonjs",
+  "main": "./dist/index.js",
   "directories": {
     "lib": "./src"
   },

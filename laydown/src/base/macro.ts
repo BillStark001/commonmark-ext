@@ -68,11 +68,17 @@ export class MacroStateMaintainer{
     return ret?.opr;
   }
 
-  data(key: string, value: string): string | undefined {
+  /**
+   * 
+   * @param key 
+   * @param value 
+   * @returns `string` if with parameter, `null` if without but with macro, `undefined` if without macro.
+   */
+  data(key: string, value: string): string | null | undefined {
     const ret = this.record.get(key)?.get(value);
     if (ret?.opr === 'one-time')
       this.record.get(key)?.delete(value);
-    return ret?.dat;
+    return ret !== undefined ? (ret.dat ?? null) : undefined;
   }
 
   check(key: string, value: string): MacroSuffix | undefined {

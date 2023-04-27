@@ -253,7 +253,7 @@ export abstract class LaydownRenderer<T> implements LaydownRenderingContext {
     const layoutStart = this.macroStore.data('layout', 'start');
     if (layoutStart !== undefined) {
       this.endLayoutIfTooMuch();
-      this.startLayout(parseLayoutParams(layoutStart));
+      this.startLayout(parseLayoutParams(layoutStart ?? ''));
     }
 
     const inLayout = this.layoutStack.length > 0;
