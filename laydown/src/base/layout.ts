@@ -43,9 +43,9 @@ export const parseLayoutParams = (params: string): LayoutParams => {
   const wFlag = res[3]?.substring(1);
 
   return {
-    direction: dirFlag.startsWith('h') ? 'horizontal' : (
-      dirFlag.startsWith('v') ? 'vertical' : (
-        dirFlag.startsWith('i') ? 'inline' : undefined
+    direction: dirFlag?.startsWith('h') ? 'horizontal' : (
+      dirFlag?.startsWith('v') ? 'vertical' : (
+        dirFlag?.startsWith('i') ? 'inline' : undefined
       )
     ),
     slots: slFlag == undefined || slFlag.length === 0 || isNaN(Number(slFlag)) ?

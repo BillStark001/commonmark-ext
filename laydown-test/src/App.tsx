@@ -21,9 +21,14 @@ This is a test string of Markdown Parsing.
 
 ## Layout 1
 
+<!-- layout: no-heading -->
+
+111
+## Fake Layout 1
+
 test 1
 
-## Layout 2 
+### Layout 2 
 
 \`test\` 2
 
@@ -32,8 +37,20 @@ test 1
 test 3 without title
 $$$
 \\frac{without}{title}
-
 $$$
+
+
+<!-- layout: start#v -->
+
+### Cascaded Layout 1
+
+content
+
+### Cascaded Layout 2
+
+content
+
+<!-- layout: end -->
 
 <!-- heading: no-link -->
 ## Layout 4
@@ -45,6 +62,14 @@ Gan Si
 Huang Xu Dong!
 \`\`\`
 
+<!-- layout: start -->
+123456
+
+# 789
+
+101112
+
+<!-- layout: end -->
 
 Bai Qiu Dai Chong Feng!
 

@@ -181,7 +181,7 @@ export class LaydownNodeRenderer implements RendererRecord {
   }
 
   table(_context: LaydownRenderingContext, _node: ENode, children: RenderedNode[]) {
-    return <table>
+    return <table className="md-table">
       {React.Children.toArray(children)[0]}
       <tbody>
         {React.Children.toArray(children).slice(1)}

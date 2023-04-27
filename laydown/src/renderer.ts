@@ -231,9 +231,28 @@ export abstract class LaydownRenderer<T> implements LaydownRenderingContext {
       .forEach(([, macro]) => this.macroStore.merge(macro));
   }
 
+  /**
+   * if in layout & layout start encountered | in layout & layout disp encountered
+   * @returns 
+   */
+  endLayoutIfTooMuch() {
+    let len = this.layoutStack.length;
+    while (true) {
+      len = this.layoutStack.length;
+      const layout = this.layoutStack[this.layoutStack.length - 1];
+      if (layout == undefined || typeof layout.params.slots !== 'number')
+        break;
+      if (layout.slots.length >= layout.params.slots)
+        this.endLayout();
+      if (this.layoutStack.length === len)
+        break;
+    }
+  }
+
   handleLayout(node: ENode) {
     const layoutStart = this.macroStore.data('layout', 'start');
     if (layoutStart !== undefined) {
+      this.endLayoutIfTooMuch();
       this.startLayout(parseLayoutParams(layoutStart));
     }
 
@@ -244,13 +263,13 @@ export abstract class LaydownRenderer<T> implements LaydownRenderingContext {
     const layoutEnd = this.macroStore.check('layout', 'end');
     // ?? (node.type === 'document' && this.layoutStack.length > 0 ? 'doc-end' : undefined);
 
-    const layoutHeading = !this.macroStore.check('layout', 'no-heading');
+    const layoutHeading = node.type === 'heading' && !this.macroStore.check('layout', 'no-heading');
     const layoutDispFlag = this.macroStore.peek('layout', 'disp');
     const layoutDisp = this.macroStore.data('layout', 'disp')
-      ?? (((layoutHeading && node.type === 'heading') || layoutDispFlag) ? '' : undefined );
-
+      ?? ((layoutHeading || layoutDispFlag) ? '' : undefined );
 
     if (layoutDisp !== undefined) {
+      this.endLayoutIfTooMuch();
       this.pushLayoutSlot(parseSlotParams(layoutDisp));
     }
     if (layoutEnd !== undefined) {
